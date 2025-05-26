@@ -78,23 +78,28 @@
 
        01  DATA-STUDENT.
            05 STUDENT-LGHT PIC 9(03).
-           05 STUDENT OCCURS 999 TIMES .
-               10 S-FIRSTNAME  PIC X(09).
-               10 S-LASTNAME   PIC X(09).
+           05 STUDENT OCCURS 1 TO 999 TIMES  
+               DEPENDING ON STUDENT-LGHT INDEXED BY S-INDEX.
+               10 S-FIRSTNAME  PIC X(12).
+               10 S-LASTNAME   PIC X(12).
                10 S-AGE        PIC 9(02).
                10 COURSE-LGHT  PIC 9(03).
+               10 S-SOMME-POND     PIC 9(03)V99.
+               10 S-SOMME-COEF     PIC 99V9.
+               10 S-MOYENNE        PIC 99V99.
                10 COURSE OCCURS 999 times.
                    15 C-LABEL          PIC X(23).
                    15 C-COEF           PIC 9V9.
-                   15 C-GRADE          PIC 99V99.
+                   15 C-GRADE          PIC X(05).
 
-       77  S-INDEX                     PIC 9(03)           VALUE 0.
+       77  S-INDEX-SEARCH              PIC 9(03)           VALUE 0.
        77  C-INDEX                     PIC 9(03)           VALUE 0.
        77  WS-LINE                     PIC X(100).
        77  WS-LINE-LEN                 PIC 9(03).
        77  WS-LABEL-LEN                PIC 9(03).
        77  WS-STUDENT-DUPLICATE        PIC X               VALUE 'F'.
        77  WS-COURSE-DUPLICATE         PIC X               VALUE 'F'.
+       77  WS-TEMP-NAME                PIC X(12).
 
       ******************************************************************
       *
@@ -197,6 +202,20 @@
                                MOVE R-COEF TO C-COEF(S-INDEX,C-INDEX)
                                MOVE R-GRADE TO C-GRADE(S-INDEX,C-INDEX)
                                MOVE R-LABEL TO C-LABEL(S-INDEX,C-INDEX)
+
+                               IF R-GRADE NOT EQUAL SPACE
+                                   COMPUTE S-SOMME-POND(S-INDEX) = 
+                                       S-SOMME-POND(S-INDEX) + 
+                                       (FUNCTION NUMVAL(R-GRADE) * 
+                                       FUNCTION NUMVAL(R-COEF))
+                                   COMPUTE S-SOMME-COEF(S-INDEX) = 
+                                       S-SOMME-COEF(S-INDEX) + 
+                                       FUNCTION NUMVAL(R-COEF)
+                                   COMPUTE S-MOYENNE(S-INDEX) 
+                                       ROUNDED = S-SOMME-POND(S-INDEX)
+                                       / S-SOMME-COEF(S-INDEX)  
+                                END-IF       
+
                            END-IF    
                
                        END-IF
@@ -206,6 +225,8 @@
            END-PERFORM.
 
            CLOSE F-INPUT.
+
+           SORT STUDENT DESCENDING S-MOYENNE.                  
 
            PERFORM VARYING S-INDEX FROM 1 BY 1
                UNTIL S-INDEX > STUDENT-LGHT
@@ -217,6 +238,9 @@
                SPACE WITH NO ADVANCING
 
                DISPLAY "Age : " S-AGE(S-INDEX)
+               SPACE WITH NO ADVANCING
+
+               DISPLAY "Moyenne : " S-MOYENNE(S-INDEX)
                DISPLAY "Matière : "
 
                PERFORM VARYING C-INDEX FROM 1 BY 1
